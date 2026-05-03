@@ -4,14 +4,14 @@ const CHAT_ID = '523020869';
 const sections = [
     {
         title: "Введение",
-        video: "video/video_introduccion.mp4",
+        video: "video/video_introduccion.MP4",
         text: "Привет! Хотите самостоятельно освоить правила испанского чтения? В этом приложении вы сможете не просто узнать правила, но и попрактиковаться и даже получить от меня обратную связь. Поехали?",
         letters: "Intro",
         exercises: false
     },
     {
         title: "Раздел 1: Гласные",
-        video: "video/video_vocales.mp4",
+        video: "video/video_vocales.MP4",
         text: "В испанском языке всего пять гласных: A, E, I, O, U. Главное правило: мы читаем их четко, как они написаны.",
         letters: "A, E, I, O, U",
         ex1_audio: "audio/vocales_2.wav",
@@ -21,7 +21,7 @@ const sections = [
     },
     {
         title: "Раздел 2: Согласные B и V",
-        video: "video/video_ByV.mp4",
+        video: "video/video_ByV.MP4",
         text: "В испанском буквы B и V передают один и тот же звук. Разницы в произношении между ними нет.",
         letters: "B, V",
         ex1_audio: "audio/b_v_2.wav",
@@ -31,7 +31,7 @@ const sections = [
     },
     {
         title: "Раздел 3: Согласные L и LL",
-        video: "video/video_LyLL.mp4",
+        video: "video/video_LyLL.MP4",
         text: "Одиночная L в испанском всегда мягкая. Двойная Ll читается как [й] или [ж].",
         letters: "L, LL",
         ex1_audio: "audio/L_y_LL_2.wav",
@@ -41,7 +41,7 @@ const sections = [
     },
     {
         title: "Раздел 4: Согласная Ñ",
-        video: "video/video_Ntilde.mp4",
+        video: "video/video_Ntilde.MP4",
         text: "Буква Ñ дает мягкий звук [нь]. После нее нет звука й.",
         letters: "Ñ",
         ex1_audio: "audio/ntilde_2.wav",
@@ -51,7 +51,7 @@ const sections = [
     },
     {
         title: "Раздел 5: Согласная R",
-        video: "video/video_R.mp4",
+        video: "video/video_R.MP4",
         text: "Буква R бывает двух видов: слабая и сильная (rr).",
         letters: "R, RR",
         ex1_audio: "audio/R_2.wav",
@@ -61,7 +61,7 @@ const sections = [
     },
     {
         title: "Раздел 6: Хитрости буквы C",
-        video: "video/video_C.mp4",
+        video: "video/video_C.MP4",
         text: "Перед E, I читается как [с]. Перед A, O, U читается как [к].",
         letters: "C",
         ex1_audio: "audio/C_2.wav",
@@ -71,7 +71,7 @@ const sections = [
     },
     {
         title: "Раздел 7: Многоликая G",
-        video: "video/video_G.mp4",
+        video: "video/video_G.MP4",
         text: "G+A,O,U = [г]. G+E,I = [х]. GU+E,I = [ге/ги]. GÜ = [гуи].",
         letters: "G",
         ex1_audio: "audio/G_2.wav",
@@ -81,7 +81,7 @@ const sections = [
     },
     {
         title: "Раздел 8: Буква Q",
-        video: "video/video_Q.mp4",
+        video: "video/video_Q.MP4",
         text: "Всегда в связке QU. Читается как [к].",
         letters: "Q",
         ex1_audio: "audio/Q_2.wav",
@@ -91,7 +91,7 @@ const sections = [
     },
     {
         title: "Раздел 9: Буква Y",
-        video: "video/video_Y.mp4",
+        video: "video/video_Y.MP4",
         text: "В конце слова = [и]. Перед гласной = [й].",
         letters: "Y",
         ex1_audio: "audio/Y_2.wav",
@@ -101,7 +101,7 @@ const sections = [
     },
     {
         title: "Раздел 10: Буква H",
-        video: "video/video_H.mp4",
+        video: "video/video_H.MP4",
         text: "Никогда не читается. В сочетании CH дает звук [ч].",
         letters: "H",
         ex1_audio: "audio/H_2.wav",
@@ -111,7 +111,7 @@ const sections = [
     },
     {
         title: "Раздел 11: Буква Z",
-        video: "video/video_Z.mp4",
+        video: "video/video_Z.MP4",
         text: "Всегда читается как межзубный [с].",
         letters: "Z",
         ex1_audio: "audio/Z_2.wav",
@@ -121,7 +121,7 @@ const sections = [
     },
     {
         title: "Бонус",
-        video: "video/video_bonus.mp4",
+        video: "video/video_bonus.MP4",
         text: "Прочитайте эти фразы и запишите себя. Затем пришлите мне свою запись на проверку.",
         letters: "Bonus",
         bonus_phrases: [
