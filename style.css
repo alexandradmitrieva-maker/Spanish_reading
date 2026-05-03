@@ -1,0 +1,111 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+}
+
+#app {
+    width: 100%;
+    max-width: 800px;
+    background: white;
+    padding: 20px;
+    min-height: 100vh;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.progress-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+#progress-bar {
+    width: 0%;
+    height: 25px;
+    background-color: #4CAF50;
+    text-align: center;
+    line-height: 25px;
+    color: white;
+    border-radius: 20px;
+    transition: width 0.3s;
+}
+
+#section-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+#section-nav button {
+    background: #e7e7e7;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#section-nav button.active {
+    background: #2196F3;
+    color: white;
+}
+
+video {
+    width: 100%;
+    border-radius: 10px;
+    margin: 15px 0;
+}
+
+.exercise-block {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.word-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.icon-btn {
+    cursor: pointer;
+    font-size: 20px;
+    background: none;
+    border: none;
+}
+
+.icon-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+}
+
+button#next-btn, button#prev-btn {
+    padding: 10px 25px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+}
+
+button#next-btn { background: #4CAF50; color: white; }
+button#prev-btn { background: #9e9e9e; color: white; }

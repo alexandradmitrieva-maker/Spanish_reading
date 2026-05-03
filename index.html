@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Испанская Фонетика</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Индикатор прогресса -->
+        <div class="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
+
+        <!-- Навигация по разделам -->
+        <nav id="section-nav"></nav>
+
+        <!-- Основной контент -->
+        <main id="content-area">
+            <div id="intro-screen">
+                <h1 id="main-title">Загрузка...</h1>
+                <div id="video-container"></div>
+                <p id="description-text"></p>
+                <div id="exercise-area"></div>
+                <div class="nav-buttons">
+                    <button id="prev-btn" style="display:none;">Назад</button>
+                    <button id="next-btn">Вперед</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
