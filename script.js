@@ -316,7 +316,7 @@ function showFinalMessage() {
 <p>Также вы можете связаться со мной любым доступным способом:</br>
 <br>WhatsApp: +34 619 429 118</br>
 <br><a href=https://t.me/elgatodecheshire" target="_blank"> Telegram</a></br>
-<br><a href=https://www.instagram.com/diario_en_espanol/ target="_blank"> Instagram/a></br>
+<br><a href=https://www.instagram.com/diario_en_espanol/ target="_blank"> Instagram</a></br>
 
 
         </div>`;
