@@ -369,7 +369,7 @@ function createRow(text, audioSrc, id) {
 
 function playA(src) {
     globalAudioPlayer.src = src;
-    globalAudioPlayer.play().catch(e => console.log("Audio play error:", e));
+    globalAudioPlayer.play().catch(e => console.log("Ошибка воспроизведения образца:", e));
 }
 
 async function startR(id) {
@@ -378,6 +378,7 @@ async function startR(id) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             let options = {};
+            
             if (MediaRecorder.isTypeSupported('audio/mp4')) {
                 options = { mimeType: 'audio/mp4' };
             } else if (MediaRecorder.isTypeSupported('audio/webm')) {
@@ -386,6 +387,7 @@ async function startR(id) {
 
             mediaRecorders[id] = new MediaRecorder(stream, options);
             audioChunks[id] = [];
+            
             mediaRecorders[id].ondataavailable = e => {
                 if (e.data && e.data.size > 0) audioChunks[id].push(e.data);
             };
@@ -403,20 +405,34 @@ async function startR(id) {
             alert("Ошибка доступа к микрофону");
         }
     } else {
-        mediaRecorders[id].stop();
-        btn.innerText = '🎤';
+        if (mediaRecorders[id]) {
+            mediaRecorders[id].stop();
+            btn.innerText = '🎤';
+        }
     }
 }
 
 function playR(id) {
-    if (!audioChunks[id] || audioChunks[id].length === 0) return;
+    if (!audioChunks[id] || audioChunks[id].length === 0) {
+        alert("Запись не найдена. Попробуйте еще раз.");
+        return;
+    }
+
     const b = new Blob(audioChunks[id]);
     const url = URL.createObjectURL(b);
+    
     globalAudioPlayer.src = url;
-    globalAudioPlayer.play().then(() => {
-        globalAudioPlayer.onended = () => URL.revokeObjectURL(url);
-    }).catch(e => console.log(e));
+    
+    globalAudioPlayer.play().catch(err => {
+        console.error("Ошибка Safari:", err);
+        alert("Нажмите OK для прослушивания");
+        globalAudioPlayer.play();
+    });
+
+    globalAudioPlayer.onended = () => URL.revokeObjectURL(url);
 }
+
+// --- СЛУЖЕБНЫЕ ФУНКЦИИ ---
 
 function markDone(id) {
     completedTasks.add(id);
@@ -430,16 +446,20 @@ function updateProgress() {
         if (s.ex2_files) total += s.ex2_files.length;
         if (s.bonus_phrases) total += s.bonus_phrases.length;
     });
-    let p = Math.round((completedTasks.size / total) * 100);
+    let p = Math.round((completedTasks.size / total) * 100) || 0;
     const bar = document.getElementById('progress-bar');
-    if(bar) { bar.style.width = p + '%'; bar.innerText = p + '%'; }
+    if(bar) { 
+        bar.style.width = p + '%'; 
+        bar.innerText = p + '%'; 
+    }
 }
 
 async function sendToTelegram() {
     const contact = document.getElementById('tg-contact').value;
     if (!contact) return alert("Введите ваш Telegram!");
     const btn = document.getElementById('send-btn');
-    btn.disabled = true; btn.innerText = "Отправка...";
+    btn.disabled = true; 
+    btn.innerText = "Отправка...";
 
     try {
         await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
@@ -464,7 +484,6 @@ async function sendToTelegram() {
         btn.innerText = "ОТПРАВИТЬ СНОВА";
     }
 }
-
 function showFinalMessage() {
     document.getElementById('content-area').innerHTML = `
         <div style="text-align:center; padding:40px;">
