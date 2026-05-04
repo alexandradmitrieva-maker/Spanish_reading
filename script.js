@@ -376,36 +376,49 @@ async function startR(id) {
     const btn = document.getElementById(`rec-${id}`);
     if (btn.innerText === '🎤') {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            let options = {};
-            
-            if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                options = { mimeType: 'audio/mp4' };
-            } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-                options = { mimeType: 'audio/webm' };
+            // Запрашиваем аудио с конкретными настройками
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true
+                } 
+            });
+
+            // На iPhone приоритет всегда audio/mp4
+            let mimeType = 'audio/mp4';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+                mimeType = 'audio/webm'; // Для Android/PC, если mp4 не завезли
             }
 
+            const options = { mimeType };
             mediaRecorders[id] = new MediaRecorder(stream, options);
             audioChunks[id] = [];
-            
+
             mediaRecorders[id].ondataavailable = e => {
-                if (e.data && e.data.size > 0) audioChunks[id].push(e.data);
+                if (e.data && e.data.size > 0) {
+                    audioChunks[id].push(e.data);
+                }
             };
 
             mediaRecorders[id].onstop = () => {
+                // Закрываем стрим, чтобы освободить микрофон (важно для iOS)
+                stream.getTracks().forEach(track => track.stop());
+                
                 if (audioChunks[id].length > 0) {
                     document.getElementById(`play-${id}`).disabled = false;
                     markDone(id);
                 }
             };
 
-            mediaRecorders[id].start();
+            // Записываем маленькими кусочками по 100мс, чтобы Safari не «потерял» поток
+            mediaRecorders[id].start(100); 
             btn.innerText = '🛑';
         } catch (err) {
-            alert("Ошибка доступа к микрофону");
+            console.error(err);
+            alert("Микрофон не доступен. Проверьте настройки HTTPS и разрешений.");
         }
     } else {
-        if (mediaRecorders[id]) {
+        if (mediaRecorders[id] && mediaRecorders[id].state !== 'inactive') {
             mediaRecorders[id].stop();
             btn.innerText = '🎤';
         }
@@ -413,25 +426,28 @@ async function startR(id) {
 }
 
 function playR(id) {
-    if (!audioChunks[id] || audioChunks[id].length === 0) {
-        alert("Запись не найдена. Попробуйте еще раз.");
-        return;
-    }
+    if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
-    const b = new Blob(audioChunks[id]);
+    // КРИТИЧЕСКИЙ МОМЕНТ: Явно указываем тип контента для iPhone
+    const mimeType = mediaRecorders[id] ? mediaRecorders[id].mimeType : 'audio/mp4';
+    const b = new Blob(audioChunks[id], { type: mimeType });
     const url = URL.createObjectURL(b);
-    
+
     globalAudioPlayer.src = url;
     
-    globalAudioPlayer.play().catch(err => {
-        console.error("Ошибка Safari:", err);
-        alert("Нажмите OK для прослушивания");
-        globalAudioPlayer.play();
-    });
+    // Для iOS создаем «обещание» (promise)
+    const playPromise = globalAudioPlayer.play();
+
+    if (playPromise !== undefined) {
+        playPromise.catch(error => {
+            console.log("Автоплей заблокирован, выводим алерт");
+            alert("Нажмите ОК для прослушивания");
+            globalAudioPlayer.play();
+        });
+    }
 
     globalAudioPlayer.onended = () => URL.revokeObjectURL(url);
 }
-
 // --- СЛУЖЕБНЫЕ ФУНКЦИИ ---
 
 function markDone(id) {
