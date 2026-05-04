@@ -2,7 +2,8 @@
 
 const CHAT_ID = '523020869';
 
-
+let audioPlayer = new Audio();
+audioPlayer.playsInline = true;
 
 const sections = [
 
@@ -400,15 +401,14 @@ async function startR(id) {
                 }
             };
 
-            mediaRecorders[id].onstop = () => {
-                // Закрываем стрим, чтобы освободить микрофон (важно для iOS)
-                stream.getTracks().forEach(track => track.stop());
-                
-                if (audioChunks[id].length > 0) {
-                    document.getElementById(`play-${id}`).disabled = false;
-                    markDone(id);
-                }
-            };
+          mediaRecorder.onstop = () => {
+    // Используем 'audio/mp4', который iPhone понимает лучше всего
+    const audioBlob = new Blob(audioChunks, { type: 'audio/mp4' });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    
+    audioPlayer.src = audioUrl;
+    audioPlayer.load(); // Подготавливаем файл заранее
+};
 
             // Записываем маленькими кусочками по 100мс, чтобы Safari не «потерял» поток
             mediaRecorders[id].start(100); 
@@ -428,24 +428,22 @@ async function startR(id) {
 function playR(id) {
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
-    // КРИТИЧЕСКИЙ МОМЕНТ: Явно указываем тип контента для iPhone
+    // 1. Собираем аудио заранее, если это еще не сделано
     const mimeType = mediaRecorders[id] ? mediaRecorders[id].mimeType : 'audio/mp4';
     const b = new Blob(audioChunks[id], { type: mimeType });
     const url = URL.createObjectURL(b);
 
     globalAudioPlayer.src = url;
     
-    // Для iOS создаем «обещание» (promise)
-    const playPromise = globalAudioPlayer.play();
-
-    if (playPromise !== undefined) {
-        playPromise.catch(error => {
-            console.log("Автоплей заблокирован, выводим алерт");
-            alert("Нажмите ОК для прослушивания");
-            globalAudioPlayer.play();
-        });
-    }
-
+    // 2. Пытаемся играть БЕЗ алерта
+    globalAudioPlayer.play().then(() => {
+        console.log("Играет успешно");
+    }).catch(error => {
+        // 3. Только если Safari ВООБЩЕ не дает играть, пробуем один раз принудительно
+        console.log("Safari lock, trying again...");
+        globalAudioPlayer.play();
+    });
+}
     globalAudioPlayer.onended = () => URL.revokeObjectURL(url);
 }
 // --- СЛУЖЕБНЫЕ ФУНКЦИИ ---
