@@ -316,7 +316,7 @@ function loadSection(idx) {
     if (s.ex1_words) {
         const d = document.createElement('div');
         d.className = 'exercise-block';
-        d.innerHTML = `<h3>Упражнение 2: Повторите за мной</h3><p>${s.ex1_words}</p>
+        d.innerHTML = `<h3>Упражнение 1: Повторите за мной</h3><p>${s.ex1_words}</p>
             <audio controls src="${s.ex1_audio}" onplay="markDone('${idx}-ex1')"></audio>`;
         area.appendChild(d);
     }
@@ -324,7 +324,7 @@ function loadSection(idx) {
     if (s.ex2_files) {
         const d = document.createElement('div');
         d.className = 'exercise-block';
-        d.innerHTML = `<h3>Упражнение 3: Прослушайте, запишите и сравните</h3>`;
+        d.innerHTML = `<h3>Упражнение 2: Прослушайте, запишите и сравните</h3>`;
         s.ex2_files.forEach(f => {
             d.appendChild(createRow(f, s.ex2_prefix + f + ".wav", `${idx}-${f}`));
         });
