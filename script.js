@@ -16,7 +16,7 @@ const sections = [
         letters: "A, E, I, O, U",
         ex1_audio: "audio/vocales_2.wav",
         ex1_words: "Mañana, sombrero, inteligente, Toledo, molestar, comemos, cansados, corte, menudo, recado, Ricardo, remolacha, camarero, coleta, meninas.",
-        ex2_files: ["acordar", "bocata", "calorias", "direccion", "domicilio", "ejemplo", "entrega", "escoger", "escote", "molecula", "notario"],
+        ex2_files: ["acordar", "bocata", "calorias", "direccion", "domicilio", "ejemplo", "entrega", "escoger", "escote", "molecula", "notario"], 
         ex2_prefix: "audio/vocales_3_"
     },
     {
@@ -65,7 +65,7 @@ const sections = [
         text: "Перед E, I читается как [с]. Перед A, O, U читается как [к].",
         letters: "C",
         ex1_audio: "audio/C_2.wav",
-        ex1_words: "decir, nacer, maceta, centro, comer, cama, boca, pecado, receta, escuchar, благодаря, tocar, paciencia, escuela, canción.",
+        ex1_words: "decir, nacer, maceta, centro, comer, cama, boca, pecado, receta, escuchar, gracias, tocar, paciencia, escuela, canción.",
         ex2_files: ["barco", "calma", "cebra", "cerca", "ciudad", "copa", "cuchara", "lectura", "noticia", "oficina", "orfecer", "sacar"],
         ex2_prefix: "audio/C_3_"
     },
@@ -85,7 +85,7 @@ const sections = [
         text: "Всегда в связке QU. Читается как [к].",
         letters: "Q",
         ex1_audio: "audio/Q_2.wav",
-        ex1_words: "Quitar, queja, quemar, quién, quieto, querido, paquete, esquina, pequeño, parque, raqueta, maquillaje, bosque, taquilla, equivocar.",
+        ex1_words: "Quitar, queja, quemar, quién, quieto, querido, paquete, esquina, pequeño, паркe, raqueta, maquillaje, bosque, taquilla, equivocar.",
         ex2_files: ["ataque", "banquete", "bloque", "buque", "cheque", "esqueleto", "estanque", "quedar", "quena", "querubin", "quijada", "quiosco", "quizas"],
         ex2_prefix: "audio/Q_3_"
     },
@@ -116,7 +116,7 @@ const sections = [
         letters: "Z",
         ex1_audio: "audio/Z_2.wav",
         ex1_words: "Zapato, zumo, zona, zorro, azul, capaz, arroz, luz, nariz, feliz, paz, brazo, corazón, cruzar, terraza.",
-        ex2_files: ["adelgazar", "alianza", "azucar", "calabaza", "choza", "esperanza", "lapiz", "маiz", "manzana", "pez", "raiz", "voz", "zanja", "zueco", "zurdo"],
+        ex2_files: ["adelgazar", "alianza", "azucar", "calabaza", "choza", "esperanza", "lapiz", "maiz", "manzana", "pez", "raiz", "voz", "zanja", "zueco", "zurdo"],
         ex2_prefix: "audio/Z_3_"
     },
     {
@@ -127,26 +127,27 @@ const sections = [
         bonus_phrases: [
             "Mañana voy a la playa.", 
             "El niño tiene un perro.", 
-            "Me gusta el queso y el vino.",
+            "Me gusta el queso и el vino.",
             "Ricardo vive en una casa con terraza.", 
             "Hay mucha gente en el centro.",
             "El camarero trae la comida.", 
             "La niña lleva un vestido rosa.",
-            "Hoy desayuno huevo и zumo.", 
+            "Hoy desayuno huevo y zumo.", 
             "Mi hermano toca la guitarra.", 
             "El perro corre por el valle."
         ]
     }
+]; // ВОТ ЗДЕСЬ БЫЛА ОШИБКА (не было скобки)
+
 let currentSectionIdx = 0;
 let completedTasks = new Set();
 let mediaRecorders = {};
 let audioChunks = {};
-
-// Глобальный плеер для обхода блокировок Safari (iPhone)
 let globalAudioPlayer = new Audio();
 
 function init() {
     const nav = document.getElementById('section-nav');
+    if (!nav) return;
     nav.innerHTML = '';
     sections.forEach((s, idx) => {
         const btn = document.createElement('button');
@@ -230,7 +231,7 @@ function createRow(text, audioSrc, id) {
 
 function playA(src) {
     globalAudioPlayer.src = src;
-    globalAudioPlayer.play().catch(e => console.log("Safari: Ожидание активации"));
+    globalAudioPlayer.play().catch(e => console.log("Audio play error:", e));
 }
 
 async function startR(id) {
@@ -276,9 +277,7 @@ function playR(id) {
     globalAudioPlayer.src = url;
     globalAudioPlayer.play().then(() => {
         globalAudioPlayer.onended = () => URL.revokeObjectURL(url);
-    }).catch(e => {
-        globalAudioPlayer.play();
-    });
+    }).catch(e => console.log(e));
 }
 
 function markDone(id) {
@@ -324,6 +323,7 @@ async function sendToTelegram() {
     } catch (e) { 
         alert("Ошибка отправки"); 
         btn.disabled = false; 
+        btn.innerText = "ОТПРАВИТЬ СНОВА";
     }
 }
 
