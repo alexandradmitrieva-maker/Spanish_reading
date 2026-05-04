@@ -235,13 +235,45 @@ async function startR(id) {
     const btn = document.getElementById(`rec-${id}`);
     if (btn.innerText === '🎤') {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorders[id] = new MediaRecorder(stream);
-        audioChunks[id] = [];
-        mediaRecorders[id].ondataavailable = e => audioChunks[id].push(e.data);
-        mediaRecorders[id].onstop = () => {
-            document.getElementById(`play-${id}`).disabled = false;
-            markDone(id);
+
+// 1. Выбираем формат, который нравится Айфону (mp4) или остальным (webm)
+let options = {};
+if (MediaRecorder.isTypeSupported('audio/mp4')) {
+    options = { mimeType: 'audio/mp4' };
+} else if (MediaRecorder.isTypeSupported('audio/webm')) {
+    options = { mimeType: 'audio/webm' };
+}
+
+// 2. Создаем регистратор с этими настройками
+mediaRecorders[id] = new MediaRecorder(stream, options);
+audioChunks[id] = [];
+
+mediaRecorders[id].ondataavailable = e => {
+    if (e.data && e.data.size > 0) {
+        audioChunks[id].push(e.data);
+    }
+};
+
+//api.telegram.org/bot${TELEGRAM_TOKEN}/sendVoice`, { method: 'POST', body: fd });
+            }
+        }
+        alert("Записи успешно отправлены!");
+        showFinalMessage();
+    } catch (e) { alert("Ошибка отправки"); btn.disabled = false; }
+}
+
+function showFinalMessage() {
+    document.getElemen
+mediaRecorders[id].onstop = () => {
+            // Активируем кнопку только если данные действительно записались
+            if (audioChunks[id].length > 0) {
+                document.getElementById(`play-${id}`).disabled = false;
+                markDone(id);
+            } else {
+                console.error("Данные аудио не были записаны");
+            }
         };
+
         mediaRecorders[id].start();
         btn.innerText = '🛑';
     } else {
@@ -253,22 +285,19 @@ async function startR(id) {
 function playR(id) {
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
-    // Создаем Blob
-    const b = new Blob(audioChunks[id], { type: 'audio/wav' });
+    // Создаем Blob без жесткого указания типа для совместимости с iPhone
+    const b = new Blob(audioChunks[id]);
     const url = URL.createObjectURL(b);
     const audio = new Audio(url);
 
     // Пытаемся воспроизвести с обработкой ошибок
     audio.play().then(() => {
-        // Когда аудио закончится, удаляем временную ссылку из памяти
         audio.onended = () => URL.revokeObjectURL(url);
     }).catch(error => {
-        console.error("Ошибка Safari:", error);
-        // Если iPhone заблокировал звук, мы хотя бы не дадим приложению зависнуть
-        alert("Нажмите 'ОК' и попробуйте еще раз. На iPhone иногда нужно повторное нажатие для активации звука.");
+        console.error("Ошибка воспроизведения:", error);
+        alert("Нажмите 'ОК' и попробуйте еще раз. На iPhone иногда требуется повторное нажатие.");
     });
-}
-function markDone(id) {
+}function markDone(id) {
     completedTasks.add(id);
     updateProgress();
 }
@@ -306,16 +335,7 @@ async function sendToTelegram() {
                 const fd = new FormData();
                 fd.append('chat_id', CHAT_ID);
                 fd.append('voice', blob, `bonus_${i}.wav`);
-                await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendVoice`, { method: 'POST', body: fd });
-            }
-        }
-        alert("Записи успешно отправлены!");
-        showFinalMessage();
-    } catch (e) { alert("Ошибка отправки"); btn.disabled = false; }
-}
-
-function showFinalMessage() {
-    document.getElementById('content-area').innerHTML = `
+                await fetch(`https:tById('content-area').innerHTML = `
         <div style="text-align:center; padding:40px;">
             <h1 style="color:#4CAF50;">¡Felicidades! 🎉</h1>
             <p>Вы успешно прошли курс. Я прослушаю ваши записи в ближайшее время!Вы дошли до конца, а значит, вы уже можете читать по-испански и понимаете правила испанского чтения. Чтобы закрепить свой успех, советую Вам вернуться к этому приложению через несколько дней.</p>
