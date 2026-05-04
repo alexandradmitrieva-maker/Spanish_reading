@@ -132,7 +132,7 @@ const sections = [
 
         ex1_audio: "audio/C_2.wav",
 
-        ex1_words: "decir, nacer, maceta, centro, comer, cama, boca, pecado, receta, escuchar, благодаря, tocar, paciencia, escuela, canción.",
+        ex1_words: "decir, nacer, maceta, centro, comer, cama, boca, pecado, receta, escuchar, agradecer, tocar, paciencia, escuela, canción.",
 
         ex2_files: ["barco", "calma", "cebra", "cerca", "ciudad", "copa", "cuchara", "lectura", "noticia", "oficina", "orfecer", "sacar"],
 
@@ -234,7 +234,7 @@ const sections = [
 
         ex1_words: "Zapato, zumo, zona, zorro, azul, capaz, arroz, luz, nariz, feliz, paz, brazo, corazón, cruzar, terraza.",
 
-        ex2_files: ["adelgazar", "alianza", "azucar", "calabaza", "choza", "esperanza", "lapiz", "маiz", "manzana", "pez", "raiz", "voz", "zanja", "zueco", "zurdo"],
+        ex2_files: ["adelgazar", "alianza", "azúcar", "calabaza", "choza", "esperanza", "lápiz", "маíz", "manzana", "pez", "raiz", "voz", "zanja", "zueco", "zurdo"],
 
         ex2_prefix: "audio/Z_3_"
 
@@ -266,7 +266,7 @@ const sections = [
 
             "La niña lleva un vestido rosa.",
 
-            "Hoy desayuno huevo и zumo.", 
+            "Hoy desayuno huevo y zumo.", 
 
             "Mi hermano toca la guitarra.", 
 
@@ -275,426 +275,214 @@ const sections = [
         ]
 
     }
-];
+]; // ВОТ ЗДЕСЬ БЫЛА ОШИБКА (не было скобки)
 
 let currentSectionIdx = 0;
-
 let completedTasks = new Set();
-
 let mediaRecorders = {};
-
 let audioChunks = {};
-
-
-
-// Глобальный плеер для обхода блокировок Safari (iPhone)
-
 let globalAudioPlayer = new Audio();
 
-
-
 function init() {
-
     const nav = document.getElementById('section-nav');
-
+    if (!nav) return;
     nav.innerHTML = '';
-
     sections.forEach((s, idx) => {
-
         const btn = document.createElement('button');
-
         btn.innerText = s.letters;
-
         btn.onclick = () => loadSection(idx);
-
         btn.id = `nav-btn-${idx}`;
-
         nav.appendChild(btn);
-
     });
-
     loadSection(0);
-
 }
-
-
 
 function loadSection(idx) {
-
     currentSectionIdx = idx;
-
     const s = sections[idx];
-
     
-
     document.querySelectorAll('#section-nav button').forEach(b => b.classList.remove('active'));
-
     const activeBtn = document.getElementById(`nav-btn-${idx}`);
-
     if (activeBtn) activeBtn.classList.add('active');
 
-
-
     document.getElementById('main-title').innerText = s.title;
-
     document.getElementById('description-text').innerText = s.text;
-
     document.getElementById('video-container').innerHTML = `<video controls src="${s.video}"></video>`;
-
     
-
     const area = document.getElementById('exercise-area');
-
     area.innerHTML = '';
 
-
-
     if (s.ex1_words) {
-
         const d = document.createElement('div');
-
         d.className = 'exercise-block';
-
         d.innerHTML = `<h3>Упражнение 2: Повторите за мной</h3><p>${s.ex1_words}</p>
-
             <audio controls src="${s.ex1_audio}" onplay="markDone('${idx}-ex1')"></audio>`;
-
         area.appendChild(d);
-
     }
-
-
 
     if (s.ex2_files) {
-
         const d = document.createElement('div');
-
         d.className = 'exercise-block';
-
         d.innerHTML = `<h3>Упражнение 3: Прослушайте, запишите и сравните</h3>`;
-
         s.ex2_files.forEach(f => {
-
             d.appendChild(createRow(f, s.ex2_prefix + f + ".wav", `${idx}-${f}`));
-
         });
-
         area.appendChild(d);
-
     }
-
-
 
     if (s.bonus_phrases) {
-
         const d = document.createElement('div');
-
         d.className = 'exercise-block';
-
         d.innerHTML = `<h3>Бонусные фразы для записи</h3>`;
-
         s.bonus_phrases.forEach((phrase, i) => {
-
             d.appendChild(createRow(phrase, null, `bonus-${i}`));
-
         });
-
         
-
         const contact = document.createElement('div');
-
         contact.style = "margin-top:20px; padding:20px; background:#f0f8ff; border-radius:10px;";
-
         contact.innerHTML = `
-
             <input type="text" id="tg-contact" placeholder="Ваш @Telegram" style="padding:10px; width:80%; border-radius:5px; border:1px solid #ccc;">
-
             <button id="send-btn" onclick="sendToTelegram()" style="margin-top:10px; padding:12px 24px; background:#2196F3; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">ОТПРАВИТЬ ГОЛОСОВЫЕ НА ПРОВЕРКУ</button>
-
         `;
-
         d.appendChild(contact);
-
         area.appendChild(d);
-
     }
-
-
 
     document.getElementById('prev-btn').style.display = idx === 0 ? 'none' : 'block';
-
     document.getElementById('next-btn').style.display = idx === sections.length - 1 ? 'none' : 'block';
-
     
-
     updateProgress();
-
 }
-
-
 
 function createRow(text, audioSrc, id) {
-
     const row = document.createElement('div');
-
     row.className = 'word-row';
-
     row.style = "display:flex; align-items:center; gap:10px; margin-bottom:8px; border-bottom:1px solid #eee; padding:5px;";
-
     row.innerHTML = `
-
         <span style="flex-grow:1;">${text}</span>
-
         ${audioSrc ? `<button class="icon-btn" onclick="playA('${audioSrc}')">🎧</button>` : ''}
-
         <button class="icon-btn" id="rec-${id}" onclick="startR('${id}')">🎤</button>
-
         <button class="icon-btn" id="play-${id}" disabled onclick="playR('${id}')">🔊</button>
-
     `;
-
     return row;
-
 }
-
-
 
 function playA(src) {
-
     globalAudioPlayer.src = src;
-
-    globalAudioPlayer.play().catch(e => console.log("Safari: Ожидание активации"));
-
+    globalAudioPlayer.play().catch(e => console.log("Audio play error:", e));
 }
-
-
 
 async function startR(id) {
-
     const btn = document.getElementById(`rec-${id}`);
-
     if (btn.innerText === '🎤') {
-
         try {
-
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
             let options = {};
-
             if (MediaRecorder.isTypeSupported('audio/mp4')) {
-
                 options = { mimeType: 'audio/mp4' };
-
             } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-
                 options = { mimeType: 'audio/webm' };
-
             }
-
-
 
             mediaRecorders[id] = new MediaRecorder(stream, options);
-
             audioChunks[id] = [];
-
             mediaRecorders[id].ondataavailable = e => {
-
                 if (e.data && e.data.size > 0) audioChunks[id].push(e.data);
-
             };
-
-
 
             mediaRecorders[id].onstop = () => {
-
                 if (audioChunks[id].length > 0) {
-
                     document.getElementById(`play-${id}`).disabled = false;
-
                     markDone(id);
-
                 }
-
             };
 
-
-
             mediaRecorders[id].start();
-
             btn.innerText = '🛑';
-
         } catch (err) {
-
             alert("Ошибка доступа к микрофону");
-
         }
-
     } else {
-
         mediaRecorders[id].stop();
-
         btn.innerText = '🎤';
-
     }
-
 }
-
-
 
 function playR(id) {
-
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
-
     const b = new Blob(audioChunks[id]);
-
     const url = URL.createObjectURL(b);
-
     globalAudioPlayer.src = url;
-
     globalAudioPlayer.play().then(() => {
-
         globalAudioPlayer.onended = () => URL.revokeObjectURL(url);
-
-    }).catch(e => {
-
-        globalAudioPlayer.play();
-
-    });
-
+    }).catch(e => console.log(e));
 }
-
-
 
 function markDone(id) {
-
     completedTasks.add(id);
-
     updateProgress();
-
 }
-
-
 
 function updateProgress() {
-
     let total = 0;
-
     sections.forEach(s => {
-
         if (s.ex1_words) total++;
-
         if (s.ex2_files) total += s.ex2_files.length;
-
         if (s.bonus_phrases) total += s.bonus_phrases.length;
-
     });
-
     let p = Math.round((completedTasks.size / total) * 100);
-
     const bar = document.getElementById('progress-bar');
-
     if(bar) { bar.style.width = p + '%'; bar.innerText = p + '%'; }
-
 }
-
-
 
 async function sendToTelegram() {
-
     const contact = document.getElementById('tg-contact').value;
-
     if (!contact) return alert("Введите ваш Telegram!");
-
     const btn = document.getElementById('send-btn');
-
     btn.disabled = true; btn.innerText = "Отправка...";
 
-
-
     try {
-
         await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-
             method: 'POST',
-
             headers: { 'Content-Type': 'application/json' },
-
             body: JSON.stringify({ chat_id: CHAT_ID, text: `📩 Новая проверка от: ${contact}` })
-
         });
 
-
-
         for (let id in audioChunks) {
-
             if (audioChunks[id].length > 0) {
-
                 const fd = new FormData();
-
                 fd.append('chat_id', CHAT_ID);
-
                 fd.append('voice', new Blob(audioChunks[id]), `rec_${id}.ogg`);
-
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendVoice`, { method: 'POST', body: fd });
-
             }
-
         }
-
         alert("Записи успешно отправлены!");
-
         showFinalMessage();
-
     } catch (e) { 
-
         alert("Ошибка отправки"); 
-
         btn.disabled = false; 
-
+        btn.innerText = "ОТПРАВИТЬ СНОВА";
     }
-
 }
-
-
 
 function showFinalMessage() {
-
     document.getElementById('content-area').innerHTML = `
-
         <div style="text-align:center; padding:40px;">
-
             <h1 style="color:#4CAF50;">¡Felicidades! 🎉</h1>
-
             <p>Вы успешно прошли курс. Я прослушаю ваши записи в ближайшее время! Вы дошли до конца, а значит, вы уже можете читать по-испански и понимаете правила испанского чтения. Чтобы закрепить свой успех, советую Вам вернуться к этому приложению через несколько дней.</p>
-
             <p>Если же вы хотите не просто начать читать, но понимать, а главное - говорить по-испански на бытовом уровне, мой интенсивный курс, который я запускаю 25 мая – это идеальный старт в языке.</p>
-
             <div style="background:#f9f9f9; padding:20px; border-radius:10px; margin-top:20px;">
-
                 <p><b>На курсе будет весело, динамично, понятно, а главное – он даст Вам мощный толчок в языке!</b></p>
-
                 <p><a href="https://forms.gle/KVFgDnx87bwAmWDB7" target="_blank">Записаться на курс</a></p>
-
             </div>
-
             <p>Также вы можете связаться со мной любым доступным способом:</p>
-
             <p>WhatsApp: +34 619 429 118<br>
-
             <a href="https://t.me/elgatodecheshire" target="_blank">Telegram</a><br>
-
             <a href="https://www.instagram.com/diario_en_espanol/" target="_blank">Instagram</a></p>
-
         </div>`;
-
 }
 
-
-
 document.getElementById('next-btn').onclick = () => loadSection(currentSectionIdx + 1);
-
 document.getElementById('prev-btn').onclick = () => loadSection(currentSectionIdx - 1);
-
-
 
 window.onload = init;
