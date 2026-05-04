@@ -251,10 +251,23 @@ async function startR(id) {
 }
 
 function playR(id) {
-    const b = new Blob(audioChunks[id], { type: 'audio/wav' });
-    new Audio(URL.createObjectURL(b)).play();
-}
+    if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
+    // Создаем Blob
+    const b = new Blob(audioChunks[id], { type: 'audio/wav' });
+    const url = URL.createObjectURL(b);
+    const audio = new Audio(url);
+
+    // Пытаемся воспроизвести с обработкой ошибок
+    audio.play().then(() => {
+        // Когда аудио закончится, удаляем временную ссылку из памяти
+        audio.onended = () => URL.revokeObjectURL(url);
+    }).catch(error => {
+        console.error("Ошибка Safari:", error);
+        // Если iPhone заблокировал звук, мы хотя бы не дадим приложению зависнуть
+        alert("Нажмите 'ОК' и попробуйте еще раз. На iPhone иногда нужно повторное нажатие для активации звука.");
+    });
+}
 function markDone(id) {
     completedTasks.add(id);
     updateProgress();
