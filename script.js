@@ -497,6 +497,7 @@ async function sendToTelegram() {
         btn.innerText = "ОТПРАВИТЬ СНОВА";
     }
 }
+}
 function showFinalMessage() {
     document.getElementById('content-area').innerHTML = `
         <div style="text-align:center; padding:40px;">
