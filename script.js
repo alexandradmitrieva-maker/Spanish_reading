@@ -283,7 +283,7 @@ let completedTasks = new Set();
 let mediaRecorders = {};
 let audioChunks = {};
 let globalAudioPlayer = new Audio();
-globalAudioPlayer.playsInline = true; // Essential for some iOS interactions
+globalAudioPlayer.playsInline = true;
 
 function init() {
     const nav = document.getElementById('section-nav');
@@ -346,8 +346,8 @@ function loadSection(idx) {
             <input type="text" id="tg-contact" placeholder="Ваш @Telegram" style="padding:10px; width:80%; border-radius:5px; border:1px solid #ccc;">
             <button id="send-btn" onclick="sendToTelegram()" style="margin-top:10px; padding:12px 24px; background:#2196F3; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">ОТПРАВИТЬ ГОЛОСОВЫЕ НА ПРОВЕРКУ</button>
         `;
-        d.appendChild(contact);
         area.appendChild(d);
+        d.appendChild(contact);
     }
 
     document.getElementById('prev-btn').style.display = idx === 0 ? 'none' : 'block';
@@ -374,79 +374,77 @@ function playA(src) {
     globalAudioPlayer.play().catch(e => console.log("Ошибка воспроизведения образца:", e));
 }
 
-// **CORRECTED FUNCTIONS FOR Recording and Playing back on iOS/iPhones**
+// 🎤 ФУНКЦИЯ ЗАПИСИ (startR)
+async function startR(id) {
+    const btn = document.getElementById(`rec-${id}`);
+    if (btn.innerText === '🎤') {
+        try {
+            audioChunks[id] = [];
+            document.getElementById(`play-${id}`).disabled = true;
 
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            const options = { mimeType: 'audio/mp4' };
+            if (!MediaRecorder.isTypeSupported('audio/mp4')) {
+                options.mimeType = 'audio/webm';
+            }
+
+            const recorder = new MediaRecorder(stream, options);
+            mediaRecorders[id] = recorder;
+
+            recorder.ondataavailable = e => {
+                if (e.data.size > 0) audioChunks[id].push(e.data);
+            };
+
+            recorder.onstop = () => {
+                // Жестко выключаем микрофон для Safari
+                stream.getTracks().forEach(track => track.stop());
+                if (audioChunks[id].length > 0) {
+                    document.getElementById(`play-${id}`).disabled = false;
+                    markDone(id);
+                }
+            };
+
+            recorder.start(100); 
+            btn.innerText = '🛑';
+        } catch (err) {
+            alert("Микрофон не доступен. Обновите страницу.");
+        }
+    } else {
+        if (mediaRecorders[id] && mediaRecorders[id].state !== 'inactive') {
+            mediaRecorders[id].stop();
+            btn.innerText = '🎤';
+        }
+    }
+}
+
+// 🔊 ФУНКЦИЯ ПРОСЛУШИВАНИЯ (playR)
 function playR(id) {
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
-    // Собираем Blob
     const mimeType = mediaRecorders[id] ? mediaRecorders[id].mimeType : 'audio/mp4';
     const blob = new Blob(audioChunks[id], { type: mimeType });
-    
-    // Создаем ссылку
     const url = URL.createObjectURL(blob);
 
-    // Сброс и перезагрузка плеера
+    // Сброс глобального плеера
     globalAudioPlayer.pause();
+    globalAudioPlayer.removeAttribute('src');
+    globalAudioPlayer.load();
     
-    // Добавляем пустую строку в src перед назначением URL, чтобы Safari "сбросил" память
-    globalAudioPlayer.src = ''; 
     globalAudioPlayer.src = url;
-    
-    globalAudioPlayer.load(); 
 
-    const playPromise = globalAudioPlayer.play();
-    if (playPromise !== undefined) {
-        playPromise.catch(() => globalAudioPlayer.play());
-    }
+    // Небольшая пауза перед стартом помогает Safari "сообразить"
+    setTimeout(() => {
+        globalAudioPlayer.play().catch(e => {
+            console.log("Retry play...");
+            globalAudioPlayer.play();
+        });
+    }, 60);
 
     globalAudioPlayer.onended = () => {
         URL.revokeObjectURL(url);
     };
-}
-
-function playR(id) {
-    if (!audioChunks[id] || audioChunks[id].length === 0) return;
-
-    // 1. Собираем свежий Blob
-    const mimeType = mediaRecorders[id] ? mediaRecorders[id].mimeType : 'audio/mp4';
-    const blob = new Blob(audioChunks[id], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-
-    // 2. Создаем ВРЕМЕННЫЙ аудио-элемент вместо глобального
-    const tempPlayer = new Audio();
-    tempPlayer.playsInline = true;
-    tempPlayer.src = url;
-
-    // 3. Важный трюк для Safari: заставляем его вычислить длительность
-    tempPlayer.addEventListener('loadedmetadata', () => {
-        if (tempPlayer.duration === Infinity) {
-            // Исправляем баг Safari с бесконечной длительностью
-            tempPlayer.currentTime = 1e101;
-            tempPlayer.ontimeupdate = function() {
-                this.ontimeupdate = () => {};
-                tempPlayer.currentTime = 0;
-            };
-        }
-    });
-
-    // 4. Запускаем
-    tempPlayer.play().catch(e => {
-        console.error("Playback failed", e);
-        // Последняя попытка для мобильных браузеров
-        tempPlayer.muted = false;
-        tempPlayer.play();
-    });
-
-    // 5. Полная зачистка после окончания
-    tempPlayer.onended = () => {
-        tempPlayer.src = "";
-        tempPlayer.load();
-        URL.revokeObjectURL(url);
-        tempPlayer.remove(); // Удаляем элемент из памяти совсем
-    };
-}
-function markDone(id) {
+}function markDone(id) {
     completedTasks.add(id);
     updateProgress();
 }
