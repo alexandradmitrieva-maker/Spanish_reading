@@ -423,7 +423,6 @@ async function startR(id) {
             btn.innerText = '🎤';
         }
     }
-}
 
 function playR(id) {
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
