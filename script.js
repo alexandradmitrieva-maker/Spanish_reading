@@ -370,7 +370,9 @@ function createRow(text, audioSrc, id) {
 }
 
 function playA(src) {
+    globalAudioPlayer.pause(); // Останавливаем текущее, если играет
     globalAudioPlayer.src = src;
+    globalAudioPlayer.load(); // Подгружаем файл
     globalAudioPlayer.play().catch(e => console.log("Ошибка воспроизведения образца:", e));
 }
 
@@ -397,7 +399,7 @@ async function startR(id) {
             };
 
             recorder.onstop = () => {
-                // Жестко выключаем микрофон для Safari
+                // Жестко выключаем микрофон для Safari (освобождаем девайс)
                 stream.getTracks().forEach(track => track.stop());
                 if (audioChunks[id].length > 0) {
                     document.getElementById(`play-${id}`).disabled = false;
@@ -422,23 +424,27 @@ async function startR(id) {
 function playR(id) {
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
-    // 1. Собираем аудио заранее, если это еще не сделано
     const mimeType = mediaRecorders[id] ? mediaRecorders[id].mimeType : 'audio/mp4';
     const b = new Blob(audioChunks[id], { type: mimeType });
     const url = URL.createObjectURL(b);
 
+    // Сбрасываем плеер перед новой ссылкой
+    globalAudioPlayer.pause();
     globalAudioPlayer.src = url;
+    globalAudioPlayer.load(); // Обязательно для iOS после смены src
     
-    // 2. Пытаемся играть БЕЗ алерта
-    globalAudioPlayer.play().then(() => {
-        console.log("Играет успешно");
-    }).catch(error => {
-        // 3. Только если Safari ВООБЩЕ не дает играть, пробуем один раз принудительно
-        console.log("Safari lock, trying again...");
-        globalAudioPlayer.play();
-    });
-}
+    globalAudioPlayer.play()
+        .then(() => console.log("Играет успешно"))
+        .catch(error => {
+            console.log("Safari lock, trying again...");
+            globalAudioPlayer.play();
+        });
 
+    // Очищаем память ТОЛЬКО после того, как звук закончился
+    globalAudioPlayer.onended = () => {
+        URL.revokeObjectURL(url);
+    };
+}
 function markDone(id) {
     completedTasks.add(id);
     updateProgress();
