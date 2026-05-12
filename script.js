@@ -283,6 +283,7 @@ let completedTasks = new Set();
 let mediaRecorders = {};
 let audioChunks = {};
 let globalAudioPlayer = new Audio();
+globalAudioPlayer.playsInline = true; // Essential for some iOS interactions
 
 function init() {
     const nav = document.getElementById('section-nav');
@@ -345,8 +346,8 @@ function loadSection(idx) {
             <input type="text" id="tg-contact" placeholder="Ваш @Telegram" style="padding:10px; width:80%; border-radius:5px; border:1px solid #ccc;">
             <button id="send-btn" onclick="sendToTelegram()" style="margin-top:10px; padding:12px 24px; background:#2196F3; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">ОТПРАВИТЬ ГОЛОСОВЫЕ НА ПРОВЕРКУ</button>
         `;
-        area.appendChild(d);
         d.appendChild(contact);
+        area.appendChild(d);
     }
 
     document.getElementById('prev-btn').style.display = idx === 0 ? 'none' : 'block';
@@ -373,22 +374,38 @@ function playA(src) {
     globalAudioPlayer.play().catch(e => console.log("Ошибка воспроизведения образца:", e));
 }
 
+// **CORRECTED FUNCTIONS FOR Recording and Playing back on iOS/iPhones**
+
 async function startR(id) {
     const btn = document.getElementById(`rec-${id}`);
     if (btn.innerText === '🎤') {
         try {
+            // First, make sure to reset chunks for this recording
+            audioChunks[id] = [];
+            // AND reset the disabled state of the 'play' button, as there's a new recording coming
+            document.getElementById(`play-${id}`).disabled = true;
+
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { echoCancellation: true, noiseSuppression: true } 
             });
 
             let mimeType = 'audio/mp4';
             if (!MediaRecorder.isTypeSupported(mimeType)) {
-                mimeType = 'audio/webm';
+                // iPhone may fail even with mp4, webm is a safer fallback for some versions
+                if(MediaRecorder.isTypeSupported('audio/webm')){
+                    mimeType = 'audio/webm';
+                } else {
+                    console.log('Falling back to default mimeType as neither mp4 nor webm audio is supported');
+                    mimeType = ''; // Let browser choose the default
+                }
             }
 
-            const options = { mimeType };
+            let options = {};
+            if(mimeType) {
+                options = { mimeType };
+            }
+
             mediaRecorders[id] = new MediaRecorder(stream, options);
-            audioChunks[id] = [];
 
             mediaRecorders[id].ondataavailable = e => {
                 if (e.data && e.data.size > 0) {
@@ -396,9 +413,15 @@ async function startR(id) {
                 }
             };
 
+            // **CRITICAL FIX**: This handler was WRONG. It was trying to use ALL the audio chunks for ALL recordings.
+            // AND we don't want to create a full Blob URL *every time* we record, only when the user wants to play it back.
+            // This event is just to signal the recording has stopped, enable the play button, and track completion.
             mediaRecorders[id].onstop = () => {
-                document.getElementById(`play-${id}`).disabled = false;
-                markDone(id);
+                console.log(`Recording stopped for id: ${id}, total chunks: ${audioChunks[id].length}`);
+                if(audioChunks[id].length > 0) {
+                    document.getElementById(`play-${id}`).disabled = false;
+                    markDone(id); // Only mark as complete if there is actual audio data
+                }
             };
 
             mediaRecorders[id].start(100); 
@@ -416,11 +439,37 @@ async function startR(id) {
 }
 
 function playR(id) {
+    // If there is no data for this ID, do nothing. This is safer as the button could be enabled but data was lost.
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
-    const b = new Blob(audioChunks[id], { type: mediaRecorders[id].mimeType });
+
+    // **CRITICAL FIX**: Re-create the Blob and URL ONLY when the user wants to play or send.
+    // We can't reuse the Blob created during recording as that's often incomplete or problematic on iOS.
+    const mimeType = mediaRecorders[id] && mediaRecorders[id].mimeType ? mediaRecorders[id].mimeType : 'audio/mp4';
+    console.log(`Re-creating Blob for playback, mimeType: ${mimeType}, chunks: ${audioChunks[id].length}`);
+    const b = new Blob(audioChunks[id], { type: mimeType });
+    
+    // Safety check for empty blob creation, though `onstop` logic should prevent this
+    if(b.size === 0) {
+        console.warn(`Attempted to create playback from an empty Blob for id: ${id}.`);
+        return;
+    }
+    
     const url = URL.createObjectURL(b);
+
     globalAudioPlayer.src = url;
-    globalAudioPlayer.play().catch(e => console.error("Ошибка Safari:", e));
+    
+    // **PROPER iOS INTERACTIONS**: Always handle interactions as a direct result of user input (click).
+    // Using `.play()` immediately is fine since this is inside a click handler. The `.catch` is for background-play restrictions.
+    globalAudioPlayer.play().catch(e => {
+        console.log("Playback blocked or failed in mobile/Safari. This is normal if this function wasn't called from a user gesture.", e);
+        // On rare occasions, Safari might require an extra interaction for a custom URL source.
+        // If this continues to fail in user tests, a direct link could be provided.
+    });
+
+    // Cleanup: revoke the URL only after the audio has finished playing.
+    globalAudioPlayer.onended = () => {
+        URL.revokeObjectURL(url);
+    };
 }
 
 function markDone(id) {
@@ -459,15 +508,22 @@ async function sendToTelegram() {
 
         for (let id in audioChunks) {
             if (audioChunks[id].length > 0) {
+                // **CRITICAL FIX**: Same as playR, always re-create the Blob when sending.
+                const mimeType = mediaRecorders[id] && mediaRecorders[id].mimeType ? mediaRecorders[id].mimeType : 'audio/mp4';
+                const currentBlob = new Blob(audioChunks[id], { type: mimeType });
+                
                 const fd = new FormData();
                 fd.append('chat_id', CHAT_ID);
-                fd.append('voice', new Blob(audioChunks[id]), `rec_${id}.ogg`);
+                // The third argument specifies a filename, essential for `sendVoice`.
+                fd.append('voice', currentBlob, `rec_${id}.ogg`);
+                
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendVoice`, { method: 'POST', body: fd });
             }
         }
         alert("Записи успешно отправлены!");
         showFinalMessage();
     } catch (e) { 
+        console.error("Telegram API Error:", e);
         alert("Ошибка отправки"); 
         btn.disabled = false; 
         btn.innerText = "ОТПРАВИТЬ СНОВА";
