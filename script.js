@@ -422,32 +422,28 @@ async function startR(id) {
 function playR(id) {
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
+    // 1. Собираем аудио заранее, если это еще не сделано
     const mimeType = mediaRecorders[id] ? mediaRecorders[id].mimeType : 'audio/mp4';
-    const blob = new Blob(audioChunks[id], { type: mimeType });
-    const url = URL.createObjectURL(blob);
+    const b = new Blob(audioChunks[id], { type: mimeType });
+    const url = URL.createObjectURL(b);
 
-    // Сброс глобального плеера
-    globalAudioPlayer.pause();
-    globalAudioPlayer.removeAttribute('src');
-    globalAudioPlayer.load();
-    
     globalAudioPlayer.src = url;
+    
+    // 2. Пытаемся играть БЕЗ алерта
+    globalAudioPlayer.play().then(() => {
+        console.log("Играет успешно");
+    }).catch(error => {
+        // 3. Только если Safari ВООБЩЕ не дает играть, пробуем один раз принудительно
+        console.log("Safari lock, trying again...");
+        globalAudioPlayer.play();
+    });
+}
 
-    // Небольшая пауза перед стартом помогает Safari "сообразить"
-    setTimeout(() => {
-        globalAudioPlayer.play().catch(e => {
-            console.log("Retry play...");
-            globalAudioPlayer.play();
-        });
-    }, 60);
-
-    globalAudioPlayer.onended = () => {
-        URL.revokeObjectURL(url);
-    };
-}function markDone(id) {
+function markDone(id) {
     completedTasks.add(id);
     updateProgress();
 }
+
 function updateProgress() {
     let total = 0;
     sections.forEach(s => {
@@ -479,20 +475,17 @@ async function sendToTelegram() {
 
         for (let id in audioChunks) {
             if (audioChunks[id].length > 0) {
-                // **CRITICAL FIX**: Same as playR, always re-create the Blob when sending.
                 const mimeType = mediaRecorders[id] && mediaRecorders[id].mimeType ? mediaRecorders[id].mimeType : 'audio/mp4';
                 const currentBlob = new Blob(audioChunks[id], { type: mimeType });
                 
                 const fd = new FormData();
                 fd.append('chat_id', CHAT_ID);
-                // The third argument specifies a filename, essential for `sendVoice`.
                 fd.append('voice', currentBlob, `rec_${id}.ogg`);
                 
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendVoice`, { method: 'POST', body: fd });
             }
         }
         alert("Записи успешно отправлены!");
-        showFinalMessage();
     } catch (e) { 
         console.error("Telegram API Error:", e);
         alert("Ошибка отправки"); 
