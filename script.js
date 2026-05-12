@@ -345,8 +345,8 @@ function loadSection(idx) {
             <input type="text" id="tg-contact" placeholder="Ваш @Telegram" style="padding:10px; width:80%; border-radius:5px; border:1px solid #ccc;">
             <button id="send-btn" onclick="sendToTelegram()" style="margin-top:10px; padding:12px 24px; background:#2196F3; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">ОТПРАВИТЬ ГОЛОСОВЫЕ НА ПРОВЕРКУ</button>
         `;
-        d.appendChild(contact);
         area.appendChild(d);
+        d.appendChild(contact);
     }
 
     document.getElementById('prev-btn').style.display = idx === 0 ? 'none' : 'block';
@@ -377,18 +377,13 @@ async function startR(id) {
     const btn = document.getElementById(`rec-${id}`);
     if (btn.innerText === '🎤') {
         try {
-            // Запрашиваем аудио с конкретными настройками
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true
-                } 
+                audio: { echoCancellation: true, noiseSuppression: true } 
             });
 
-            // На iPhone приоритет всегда audio/mp4
             let mimeType = 'audio/mp4';
             if (!MediaRecorder.isTypeSupported(mimeType)) {
-                mimeType = 'audio/webm'; // Для Android/PC, если mp4 не завезли
+                mimeType = 'audio/webm';
             }
 
             const options = { mimeType };
@@ -401,21 +396,16 @@ async function startR(id) {
                 }
             };
 
-          mediaRecorder.onstop = () => {
-    // Используем 'audio/mp4', который iPhone понимает лучше всего
-    const audioBlob = new Blob(audioChunks, { type: 'audio/mp4' });
-    const audioUrl = URL.createObjectURL(audioBlob);
-    
-    audioPlayer.src = audioUrl;
-    audioPlayer.load(); // Подготавливаем файл заранее
-};
+            mediaRecorders[id].onstop = () => {
+                document.getElementById(`play-${id}`).disabled = false;
+                markDone(id);
+            };
 
-            // Записываем маленькими кусочками по 100мс, чтобы Safari не «потерял» поток
             mediaRecorders[id].start(100); 
             btn.innerText = '🛑';
         } catch (err) {
             console.error(err);
-            alert("Микрофон не доступен. Проверьте настройки HTTPS и разрешений.");
+            alert("Микрофон не доступен.");
         }
     } else {
         if (mediaRecorders[id] && mediaRecorders[id].state !== 'inactive') {
@@ -423,29 +413,15 @@ async function startR(id) {
             btn.innerText = '🎤';
         }
     }
+}
 
 function playR(id) {
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
-
-    // 1. Собираем аудио заранее, если это еще не сделано
-    const mimeType = mediaRecorders[id] ? mediaRecorders[id].mimeType : 'audio/mp4';
-    const b = new Blob(audioChunks[id], { type: mimeType });
+    const b = new Blob(audioChunks[id], { type: mediaRecorders[id].mimeType });
     const url = URL.createObjectURL(b);
-
     globalAudioPlayer.src = url;
-    
-    // 2. Пытаемся играть БЕЗ алерта
-    globalAudioPlayer.play().then(() => {
-        console.log("Играет успешно");
-    }).catch(error => {
-        // 3. Только если Safari ВООБЩЕ не дает играть, пробуем один раз принудительно
-        console.log("Safari lock, trying again...");
-        globalAudioPlayer.play();
-    });
+    globalAudioPlayer.play().catch(e => console.error("Ошибка Safari:", e));
 }
-    globalAudioPlayer.onended = () => URL.revokeObjectURL(url);
-
-// --- СЛУЖЕБНЫЕ ФУНКЦИИ ---
 
 function markDone(id) {
     completedTasks.add(id);
@@ -497,29 +473,18 @@ async function sendToTelegram() {
         btn.innerText = "ОТПРАВИТЬ СНОВА";
     }
 }
-}
+
 function showFinalMessage() {
     document.getElementById('content-area').innerHTML = `
         <div style="text-align:center; padding:40px;">
             <h1 style="color:#4CAF50;">¡Felicidades! 🎉</h1>
-            <p>Вы успешно прошли курс. Я прослушаю ваши записи в ближайшее время! Вы дошли до конца, а значит, вы уже можете читать по-испански и понимаете правила испанского чтения. Чтобы закрепить свой успех, советую Вам вернуться к этому приложению через несколько дней.</p>
-            <p>Если же вы хотите не просто начать читать, но понимать, а главное — говорить по-испански на бытовом уровне, мой интенсивный курс, который я запускаю 25 мая — это идеальный старт в языке.</p>
-            
+            <p>Вы успешно прошли курс. Я прослушаю ваши записи в ближайшее время!</p>
             <div style="background:#f9f9f9; padding:20px; border-radius:10px; margin-top:20px;">
-                <p><b>На курсе будет весело, динамично, понятно, а главное — он даст Вам мощный толчок в языке!</b></p>
-                <p><a href="https://forms.gle/KVFgDnx87bwAmWDB7" target="_blank">Записаться на курс</a></p>
+                <p><a href="https://forms.gle/KVFgDnx87bwAmWDB7" target="_blank">Записаться на интенсив</a></p>
             </div>
-            
-            <p>Также вы можете связаться со мной любым доступным способом:</p>
-            <p>
-                WhatsApp: +34 619 429 118<br>
-                <a href="https://t.me/elgatodecheshire" target="_blank">Telegram</a><br>
-                <a href="https://www.instagram.com/diario_en_espanol/" target="_blank">Instagram</a>
-            </p>
         </div>`;
 }
 
-// Привязка обработчиков кнопок
 document.getElementById('next-btn').onclick = () => loadSection(currentSectionIdx + 1);
 document.getElementById('prev-btn').onclick = () => loadSection(currentSectionIdx - 1);
 
