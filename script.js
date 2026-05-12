@@ -502,18 +502,23 @@ function showFinalMessage() {
         <div style="text-align:center; padding:40px;">
             <h1 style="color:#4CAF50;">¡Felicidades! 🎉</h1>
             <p>Вы успешно прошли курс. Я прослушаю ваши записи в ближайшее время! Вы дошли до конца, а значит, вы уже можете читать по-испански и понимаете правила испанского чтения. Чтобы закрепить свой успех, советую Вам вернуться к этому приложению через несколько дней.</p>
-            <p>Если же вы хотите не просто начать читать, но понимать, а главное - говорить по-испански на бытовом уровне, мой интенсивный курс, который я запускаю 25 мая – это идеальный старт в языке.</p>
+            <p>Если же вы хотите не просто начать читать, но понимать, а главное — говорить по-испански на бытовом уровне, мой интенсивный курс, который я запускаю 25 мая — это идеальный старт в языке.</p>
+            
             <div style="background:#f9f9f9; padding:20px; border-radius:10px; margin-top:20px;">
-                <p><b>На курсе будет весело, динамично, понятно, а главное – он даст Вам мощный толчок в языке!</b></p>
+                <p><b>На курсе будет весело, динамично, понятно, а главное — он даст Вам мощный толчок в языке!</b></p>
                 <p><a href="https://forms.gle/KVFgDnx87bwAmWDB7" target="_blank">Записаться на курс</a></p>
             </div>
+            
             <p>Также вы можете связаться со мной любым доступным способом:</p>
-            <p>WhatsApp: +34 619 429 118<br>
-            <a href="https://t.me/elgatodecheshire" target="_blank">Telegram</a><br>
-            <a href="https://www.instagram.com/diario_en_espanol/" target="_blank">Instagram</a></p>
+            <p>
+                WhatsApp: +34 619 429 118<br>
+                <a href="https://t.me/elgatodecheshire" target="_blank">Telegram</a><br>
+                <a href="https://www.instagram.com/diario_en_espanol/" target="_blank">Instagram</a>
+            </p>
         </div>`;
 }
 
+// Привязка обработчиков кнопок
 document.getElementById('next-btn').onclick = () => loadSection(currentSectionIdx + 1);
 document.getElementById('prev-btn').onclick = () => loadSection(currentSectionIdx - 1);
 
