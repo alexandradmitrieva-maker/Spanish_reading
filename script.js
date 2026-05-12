@@ -445,6 +445,7 @@ function playR(id) {
 }
     globalAudioPlayer.onended = () => URL.revokeObjectURL(url);
 
+// --- СЛУЖЕБНЫЕ ФУНКЦИИ ---
 
 function markDone(id) {
     completedTasks.add(id);
