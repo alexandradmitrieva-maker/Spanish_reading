@@ -408,33 +408,44 @@ function playR(id) {
 function playR(id) {
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
-    // 1. Подготавливаем данные
+    // 1. Собираем свежий Blob
     const mimeType = mediaRecorders[id] ? mediaRecorders[id].mimeType : 'audio/mp4';
     const blob = new Blob(audioChunks[id], { type: mimeType });
     const url = URL.createObjectURL(blob);
 
-    // 2. Настраиваем плеер (Критично для iOS)
-    globalAudioPlayer.pause();
-    globalAudioPlayer.src = url;
-    globalAudioPlayer.load(); 
+    // 2. Создаем ВРЕМЕННЫЙ аудио-элемент вместо глобального
+    const tempPlayer = new Audio();
+    tempPlayer.playsInline = true;
+    tempPlayer.src = url;
 
-    // 3. Запускаем воспроизведение
-    const playPromise = globalAudioPlayer.play();
+    // 3. Важный трюк для Safari: заставляем его вычислить длительность
+    tempPlayer.addEventListener('loadedmetadata', () => {
+        if (tempPlayer.duration === Infinity) {
+            // Исправляем баг Safari с бесконечной длительностью
+            tempPlayer.currentTime = 1e101;
+            tempPlayer.ontimeupdate = function() {
+                this.ontimeupdate = () => {};
+                tempPlayer.currentTime = 0;
+            };
+        }
+    });
 
-    if (playPromise !== undefined) {
-        playPromise.catch(error => {
-            console.log("Ошибка воспроизведения:", error);
-            // Повторная попытка, если Safari притормозил
-            globalAudioPlayer.play();
-        });
-    }
+    // 4. Запускаем
+    tempPlayer.play().catch(e => {
+        console.error("Playback failed", e);
+        // Последняя попытка для мобильных браузеров
+        tempPlayer.muted = false;
+        tempPlayer.play();
+    });
 
-    // 4. Очистка памяти после завершения
-    globalAudioPlayer.onended = () => {
+    // 5. Полная зачистка после окончания
+    tempPlayer.onended = () => {
+        tempPlayer.src = "";
+        tempPlayer.load();
         URL.revokeObjectURL(url);
+        tempPlayer.remove(); // Удаляем элемент из памяти совсем
     };
 }
-
 function markDone(id) {
     completedTasks.add(id);
     updateProgress();
