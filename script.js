@@ -380,14 +380,25 @@ async function startR(id) {
     const btn = document.getElementById(`rec-${id}`);
     
     if (btn.innerText === '🎤') {
+        // 1. ПРИНУДИТЕЛЬНЫЙ СБРОС (для iOS)
+        if (mediaRecorders[id]) {
+            if (mediaRecorders[id].state !== 'inactive') {
+                mediaRecorders[id].stop();
+            }
+            // Убираем старые связи, чтобы Safari думал, что это первый раз
+            mediaRecorders[id] = null;
+        }
+
         try {
-            // 1. Очищаем старые данные
             audioChunks[id] = [];
             document.getElementById(`play-${id}`).disabled = true;
 
-            // 2. Запрашиваем поток
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: { echoCancellation: true, noiseSuppression: true } 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                } 
             });
 
             let mimeType = 'audio/mp4';
@@ -395,17 +406,17 @@ async function startR(id) {
                 mimeType = 'audio/webm';
             }
 
-            // 3. Создаем новый рекордер
-            mediaRecorders[id] = new MediaRecorder(stream, { mimeType });
+            const recorder = new MediaRecorder(stream, { mimeType });
+            mediaRecorders[id] = recorder;
 
-            mediaRecorders[id].ondataavailable = e => {
+            recorder.ondataavailable = e => {
                 if (e.data && e.data.size > 0) {
                     audioChunks[id].push(e.data);
                 }
             };
 
-            mediaRecorders[id].onstop = () => {
-                // КРИТИЧНО ДЛЯ IOS: Выключаем микрофон полностью после остановки
+            recorder.onstop = () => {
+                // ВАЖНО: Выключаем все дорожки микрофона
                 stream.getTracks().forEach(track => {
                     track.stop();
                     track.enabled = false;
@@ -417,16 +428,16 @@ async function startR(id) {
                 }
             };
 
-            // 4. Запуск (маленькие интервалы помогают Safari не терять поток)
-            mediaRecorders[id].start(100); 
+            // Запускаем
+            recorder.start(100); 
             btn.innerText = '🛑';
             
         } catch (err) {
-            console.error("Ошибка доступа к микрофону:", err);
-            alert("Не удалось включить микрофон. Закройте другие вкладки, которые могут его использовать.");
+            console.error("Ошибка:", err);
+            alert("Safari заблокировал микрофон. Попробуйте обновить страницу или закрыть другие вкладки.");
         }
     } else {
-        // Остановка записи
+        // Останавливаем запись
         if (mediaRecorders[id] && mediaRecorders[id].state !== 'inactive') {
             mediaRecorders[id].stop();
             btn.innerText = '🎤';
