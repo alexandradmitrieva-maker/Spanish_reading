@@ -378,22 +378,24 @@ function playA(src) {
 
 async function startR(id) {
     const btn = document.getElementById(`rec-${id}`);
+    
     if (btn.innerText === '🎤') {
         try {
-            // Очищаем старые данные перед новой записью
+            // 1. Очищаем старые данные
             audioChunks[id] = [];
             document.getElementById(`play-${id}`).disabled = true;
 
+            // 2. Запрашиваем поток
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { echoCancellation: true, noiseSuppression: true } 
             });
 
-            // Для iPhone (Safari) жестко задаем mp4, если это возможно
             let mimeType = 'audio/mp4';
             if (!MediaRecorder.isTypeSupported(mimeType)) {
                 mimeType = 'audio/webm';
             }
 
+            // 3. Создаем новый рекордер
             mediaRecorders[id] = new MediaRecorder(stream, { mimeType });
 
             mediaRecorders[id].ondataavailable = e => {
@@ -403,8 +405,11 @@ async function startR(id) {
             };
 
             mediaRecorders[id].onstop = () => {
-                // Важно: на некоторых версиях iOS поток нужно закрыть вручную
-                stream.getTracks().forEach(track => track.stop());
+                // КРИТИЧНО ДЛЯ IOS: Выключаем микрофон полностью после остановки
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                    track.enabled = false;
+                });
                 
                 if (audioChunks[id].length > 0) {
                     document.getElementById(`play-${id}`).disabled = false;
@@ -412,20 +417,22 @@ async function startR(id) {
                 }
             };
 
+            // 4. Запуск (маленькие интервалы помогают Safari не терять поток)
             mediaRecorders[id].start(100); 
             btn.innerText = '🛑';
+            
         } catch (err) {
-            console.error(err);
-            alert("Микрофон не доступен.");
+            console.error("Ошибка доступа к микрофону:", err);
+            alert("Не удалось включить микрофон. Закройте другие вкладки, которые могут его использовать.");
         }
     } else {
+        // Остановка записи
         if (mediaRecorders[id] && mediaRecorders[id].state !== 'inactive') {
             mediaRecorders[id].stop();
             btn.innerText = '🎤';
         }
     }
 }
-
 function playR(id) {
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
