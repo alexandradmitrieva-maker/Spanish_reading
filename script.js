@@ -380,32 +380,21 @@ async function startR(id) {
     const btn = document.getElementById(`rec-${id}`);
     if (btn.innerText === '🎤') {
         try {
-            // First, make sure to reset chunks for this recording
+            // Очищаем старые данные перед новой записью
             audioChunks[id] = [];
-            // AND reset the disabled state of the 'play' button, as there's a new recording coming
             document.getElementById(`play-${id}`).disabled = true;
 
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: { echoCancellation: true, noiseSuppression: true } 
             });
 
+            // Для iPhone (Safari) жестко задаем mp4, если это возможно
             let mimeType = 'audio/mp4';
             if (!MediaRecorder.isTypeSupported(mimeType)) {
-                // iPhone may fail even with mp4, webm is a safer fallback for some versions
-                if(MediaRecorder.isTypeSupported('audio/webm')){
-                    mimeType = 'audio/webm';
-                } else {
-                    console.log('Falling back to default mimeType as neither mp4 nor webm audio is supported');
-                    mimeType = ''; // Let browser choose the default
-                }
+                mimeType = 'audio/webm';
             }
 
-            let options = {};
-            if(mimeType) {
-                options = { mimeType };
-            }
-
-            mediaRecorders[id] = new MediaRecorder(stream, options);
+            mediaRecorders[id] = new MediaRecorder(stream, { mimeType });
 
             mediaRecorders[id].ondataavailable = e => {
                 if (e.data && e.data.size > 0) {
@@ -413,14 +402,13 @@ async function startR(id) {
                 }
             };
 
-            // **CRITICAL FIX**: This handler was WRONG. It was trying to use ALL the audio chunks for ALL recordings.
-            // AND we don't want to create a full Blob URL *every time* we record, only when the user wants to play it back.
-            // This event is just to signal the recording has stopped, enable the play button, and track completion.
             mediaRecorders[id].onstop = () => {
-                console.log(`Recording stopped for id: ${id}, total chunks: ${audioChunks[id].length}`);
-                if(audioChunks[id].length > 0) {
+                // Важно: на некоторых версиях iOS поток нужно закрыть вручную
+                stream.getTracks().forEach(track => track.stop());
+                
+                if (audioChunks[id].length > 0) {
                     document.getElementById(`play-${id}`).disabled = false;
-                    markDone(id); // Only mark as complete if there is actual audio data
+                    markDone(id);
                 }
             };
 
@@ -439,34 +427,30 @@ async function startR(id) {
 }
 
 function playR(id) {
-    // If there is no data for this ID, do nothing. This is safer as the button could be enabled but data was lost.
     if (!audioChunks[id] || audioChunks[id].length === 0) return;
 
-    // **CRITICAL FIX**: Re-create the Blob and URL ONLY when the user wants to play or send.
-    // We can't reuse the Blob created during recording as that's often incomplete or problematic on iOS.
-    const mimeType = mediaRecorders[id] && mediaRecorders[id].mimeType ? mediaRecorders[id].mimeType : 'audio/mp4';
-    console.log(`Re-creating Blob for playback, mimeType: ${mimeType}, chunks: ${audioChunks[id].length}`);
-    const b = new Blob(audioChunks[id], { type: mimeType });
-    
-    // Safety check for empty blob creation, though `onstop` logic should prevent this
-    if(b.size === 0) {
-        console.warn(`Attempted to create playback from an empty Blob for id: ${id}.`);
-        return;
-    }
-    
-    const url = URL.createObjectURL(b);
+    // 1. Подготавливаем данные
+    const mimeType = mediaRecorders[id] ? mediaRecorders[id].mimeType : 'audio/mp4';
+    const blob = new Blob(audioChunks[id], { type: mimeType });
+    const url = URL.createObjectURL(blob);
 
+    // 2. Настраиваем плеер (Критично для iOS)
+    globalAudioPlayer.pause();
     globalAudioPlayer.src = url;
-    
-    // **PROPER iOS INTERACTIONS**: Always handle interactions as a direct result of user input (click).
-    // Using `.play()` immediately is fine since this is inside a click handler. The `.catch` is for background-play restrictions.
-    globalAudioPlayer.play().catch(e => {
-        console.log("Playback blocked or failed in mobile/Safari. This is normal if this function wasn't called from a user gesture.", e);
-        // On rare occasions, Safari might require an extra interaction for a custom URL source.
-        // If this continues to fail in user tests, a direct link could be provided.
-    });
+    globalAudioPlayer.load(); 
 
-    // Cleanup: revoke the URL only after the audio has finished playing.
+    // 3. Запускаем воспроизведение
+    const playPromise = globalAudioPlayer.play();
+
+    if (playPromise !== undefined) {
+        playPromise.catch(error => {
+            console.log("Ошибка воспроизведения:", error);
+            // Повторная попытка, если Safari притормозил
+            globalAudioPlayer.play();
+        });
+    }
+
+    // 4. Очистка памяти после завершения
     globalAudioPlayer.onended = () => {
         URL.revokeObjectURL(url);
     };
@@ -476,7 +460,6 @@ function markDone(id) {
     completedTasks.add(id);
     updateProgress();
 }
-
 function updateProgress() {
     let total = 0;
     sections.forEach(s => {
